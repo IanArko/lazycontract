@@ -6,7 +6,6 @@ import uuid
 
 
 class AliasProperty(LazyProperty):
-
     def __init__(self, aliased_property, *args, **kwargs):
         super(AliasProperty, self).__init__(*args, **kwargs)
         self.aliased_property = aliased_property

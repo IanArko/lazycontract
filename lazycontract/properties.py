@@ -19,7 +19,7 @@ class BooleanProperty(LazyProperty):
 
     def deserialize(self, obj):
         if isinstance(obj, six.string_types):
-            return obj.lower() == 'true'
+            return obj.lower() == "true"
         else:
             return self._type(obj)
 
@@ -42,7 +42,11 @@ class EnumerationProperty(LazyProperty):
 
     def deserialize(self, obj):
         if obj is not None and obj not in self._options:
-            raise ValueError('enumeration option {} not in acception options: {}'.format(obj, self._options))
+            raise ValueError(
+                "enumeration option {} not in acception options: {}".format(
+                    obj, self._options
+                )
+            )
         return obj
 
 
@@ -68,7 +72,6 @@ class ObjectProperty(LazyProperty):
 
 
 class ContainerProperty(LazyProperty):
-
     def __init__(self, lazyproperty=None, *args, **kwargs):
         assert lazyproperty is None or isinstance(lazyproperty, LazyProperty)
         super(ContainerProperty, self).__init__(*args, **kwargs)
@@ -100,15 +103,13 @@ class DictProperty(ContainerProperty):
         if self._property is None:
             return obj
         else:
-            return {k: self._property.serialize(e)
-                    for k, e in six.iteritems(obj)}
+            return {k: self._property.serialize(e) for k, e in six.iteritems(obj)}
 
     def deserialize(self, obj):
         if self._property is None:
             return obj
         else:
-            return {k: self._property.deserialize(e)
-                    for k, e in six.iteritems(obj)}
+            return {k: self._property.deserialize(e) for k, e in six.iteritems(obj)}
 
 
 class SetProperty(ContainerProperty):

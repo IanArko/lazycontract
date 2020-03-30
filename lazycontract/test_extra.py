@@ -10,7 +10,7 @@ def test_uuid_property():
     class TestUUIDContract(LazyContract):
         g = UUIDProperty()
 
-    example = '14d0a7b5-33c5-439b-a66b-2d464f4e7d1b'
+    example = "14d0a7b5-33c5-439b-a66b-2d464f4e7d1b"
     expected = dict(g=example)
 
     assert TestUUIDContract(g=example).to_dict() == expected
@@ -23,7 +23,7 @@ def test_uuid_string_property():
     class TestUUIDStringContract(LazyContract):
         g = UUIDStringProperty()
 
-    example = '14d0a7b5-33c5-439b-a66b-2d464f4e7d1b'
+    example = "14d0a7b5-33c5-439b-a66b-2d464f4e7d1b"
     expected = dict(g=example)
 
     assert TestUUIDStringContract(g=example).to_dict() == expected
@@ -35,9 +35,9 @@ def test_uuid_string_property():
 def test_alias_property():
     class TestAliasContract(LazyContract):
         a = UUIDStringProperty()
-        b = AliasProperty('a')
+        b = AliasProperty("a")
 
-    example = '14d0a7b5-33c5-439b-a66b-2d464f4e7d1b'
+    example = "14d0a7b5-33c5-439b-a66b-2d464f4e7d1b"
     expected = dict(a=example, b=example)
 
     assert TestAliasContract(a=example).to_dict() == expected
