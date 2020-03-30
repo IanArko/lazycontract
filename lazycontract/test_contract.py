@@ -5,7 +5,6 @@ from .contract import (
     StrictContract,
     DynamicContract,
     LazyContractValidationError,
-    LazyContractDeserializationError,
 )
 from .properties import StringProperty, IntegerProperty, FloatProperty
 
@@ -53,7 +52,7 @@ def test_strict_contract_invalid_deserialize_attribute():
     except LazyContractValidationError as e:
         assert type(e) == LazyContractValidationError
         assert LazyContractValidationError.INVALID_ATTR_FMT.format(
-            "TestContract", "x"
+            "x"
         ) in str(e)
 
 
@@ -66,7 +65,7 @@ def test_required():
         assert "LazyContractValidationError expected" == False
     except LazyContractValidationError as e:
         assert LazyContractValidationError.REQUIRED_FMT.format(
-            "TestContract", "a", ""
+             "a", ""
         ) in str(e)
 
 
@@ -79,7 +78,7 @@ def test_not_none():
         assert "LazyContractValidationError expected" == False
     except LazyContractValidationError as e:
         assert LazyContractValidationError.NOT_NONE_FMT.format(
-            "TestContract", "a"
+            "a"
         ) in str(e)
 
     try:
@@ -87,7 +86,7 @@ def test_not_none():
         assert "LazyContractValidationError expected" == False
     except LazyContractValidationError as e:
         assert LazyContractValidationError.NOT_NONE_FMT.format(
-            "StringProperty", "a"
+            "a"
         ) in str(e)
 
     t = TestContract(a="foobar")
@@ -96,7 +95,7 @@ def test_not_none():
         assert "LazyContractValidationError expected" == False
     except LazyContractValidationError as e:
         assert LazyContractValidationError.NOT_NONE_FMT.format(
-            "StringProperty", "a"
+            "a"
         ) in str(e)
 
 
@@ -126,11 +125,9 @@ def test_deserialization_error():
 
     try:
         TestContract(a="3.2")
-        assert "expected LazyContractDeserializationError" == False
-    except LazyContractDeserializationError as e:
-        assert LazyContractDeserializationError.FMT.format(
-            "TestContract", "a", repr("3.2"), reason
-        ) in str(e)
+        assert "expected LazyContractValidationError" == False
+    except LazyContractValidationError as e:
+        assert str(reason) in str(e)
 
 
 def test_serialization_name():

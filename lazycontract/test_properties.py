@@ -3,7 +3,6 @@ from __future__ import absolute_import
 from .contract import (
     LazyContract,
     LazyContractValidationError,
-    LazyContractDeserializationError,
 )
 from .properties import (
     ObjectProperty,
@@ -142,14 +141,14 @@ def test_enum_property():
 
     try:
         TestContract(x=1, y="b")
-        assert "Expected LazyContractDeserializationError" == False
-    except LazyContractDeserializationError:
+        assert "Expected LazyContractValidationError" == False
+    except LazyContractValidationError:
         pass
 
     try:
         TestContract(y="d")
-        assert "Expected LazyContractDeserializationError" == False
-    except LazyContractDeserializationError:
+        assert "Expected LazyContractValidationError" == False
+    except LazyContractValidationError:
         pass
 
     try:

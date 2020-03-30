@@ -1,7 +1,6 @@
 from __future__ import absolute_import
 
 import re
-import six
 
 
 IDENTIFIER_RE = re.compile(r"[A-Za-z_][A-Za-z0-9_]*\Z")
@@ -13,19 +12,23 @@ class LazyContractError(Exception):
     pass
 
 
-class LazyContractDeserializationError(LazyContractError):
-    """ Exception deserializing a message into a LazyContract-derived class """
-
-    FMT = "failed to deserialize {}.{} from {} due to: {}"
-
-
 class LazyContractValidationError(LazyContractError):
     """ Exception validating data within a LazyContract-derived class """
 
-    INVALID_ATTR_FMT = "{} has no attribute '{}'"
-    NOT_NONE_FMT = "{} {} must not be None"
-    REQUIRED_FMT = "{}.{} is required for {}"
-    ATTR_TYPE_FMT = "{}.{} value {} is not of type {}"
+    INVALID_ATTR_FMT = "no attribute '{}'"
+    NOT_NONE_FMT = "{} must not be None"
+    REQUIRED_FMT = "'{}' not found in {}"
+    ATTR_TYPE_FMT = "value {} is not of type {}"
+
+    FMT = "{}{}: {}"
+
+    def __init__(self, that, path, msg):
+        self.clsname = type(that).__name__
+        self.path = path
+        self.msg = msg
+
+    def __str__(self):
+        return self.FMT.format(self.clsname, self.path, self.msg)
 
 
 class LazyProperty(object):
@@ -79,16 +82,14 @@ class LazyProperty(object):
 
         if obj is None and self.not_none:
             raise LazyContractValidationError(
-                LazyContractValidationError.NOT_NONE_FMT.format(
-                    type(self).__name__, self.name
-                )
+                self, "", LazyContractValidationError.NOT_NONE_FMT.format(self.name)
             )
 
         if not isinstance(obj, self._type) and obj is not None:
             raise LazyContractValidationError(
-                LazyContractValidationError.ATTR_TYPE_FMT.format(
-                    type(self).__name__, self.name, repr(obj), self._type
-                )
+                self,
+                "." + self.name,
+                LazyContractValidationError.ATTR_TYPE_FMT.format(repr(obj), self._type),
             )
 
     def serialize(self, obj):
@@ -139,7 +140,12 @@ class LazyContract(object):
         )
 
     def __discover_properties(self, obj, cls):
-        for name, inst in six.iteritems(cls.__dict__):
+        if not hasattr(obj, "items"):
+            raise LazyContractValidationError(
+                self, "", "'{}' is not a dictionary".format(obj)
+            )
+
+        for name, inst in cls.__dict__.items():
             if isinstance(inst, LazyProperty):
                 self._properties[name] = inst
 
@@ -151,20 +157,27 @@ class LazyContract(object):
                 if inst.name not in obj and name not in obj:
                     if inst.required:
                         raise LazyContractValidationError(
+                            self,
+                            "",
                             LazyContractValidationError.REQUIRED_FMT.format(
-                                type(self).__name__, inst.name, repr(obj)
-                            )
+                                inst.name, repr(obj)
+                            ),
                         )
 
                     if inst.not_none and inst.default is None:
                         raise LazyContractValidationError(
-                            LazyContractValidationError.NOT_NONE_FMT.format(
-                                type(self).__name__, inst.name
-                            )
+                            self,
+                            "",
+                            LazyContractValidationError.NOT_NONE_FMT.format(inst.name),
                         )
 
     def _populate_properties(self, obj):
-        for key, value in six.iteritems(obj):
+        if not hasattr(obj, "items"):
+            raise LazyContractValidationError(
+                self, "", "'{}' is not a dictionary".format(obj)
+            )
+
+        for key, value in obj.items():
             if key in self._mappings:
                 key = self._mappings[key]
 
@@ -172,25 +185,31 @@ class LazyContract(object):
                 if self._ignore_undefined_attributes:
                     continue
                 raise LazyContractValidationError(
-                    LazyContractValidationError.INVALID_ATTR_FMT.format(
-                        type(self).__name__, key
-                    )
+                    self,
+                    "." + key,
+                    LazyContractValidationError.INVALID_ATTR_FMT.format(key),
                 )
 
             if value is not None:
                 try:
                     value = self._properties[key].deserialize(value)
                 except Exception as e:
-                    raise LazyContractDeserializationError(
-                        LazyContractDeserializationError.FMT.format(
-                            type(self).__name__, key, repr(value), e
-                        )
-                    )
+                    key = "." + key
+                    if isinstance(e, LazyContractValidationError):
+                        if e.path:
+                            key += e.path
+                        msg = e.msg
+                        context = e.__cause__
+                    else:
+                        msg = str(e)
+                        context = e
+
+                    raise LazyContractValidationError(self, key, msg) from context
 
             setattr(self, key, value)
 
     def __iter_properties(self):
-        for name, prop in six.iteritems(self._properties):
+        for name, prop in self._properties.items():
             yield name, prop, getattr(self, name)
 
     def __eq__(self, other):
@@ -216,7 +235,7 @@ class LazyContract(object):
 
     @classmethod
     def contract_properties(cls):
-        for name, inst in six.iteritems(cls.__dict__):
+        for name, inst in cls.__dict__.items():
             if isinstance(inst, LazyProperty):
                 yield name, inst
 
@@ -233,14 +252,10 @@ class DynamicContract(LazyContract):
 
     def _populate_properties(self, obj):
         contained = {
-            k: v
-            for k, v in six.iteritems(obj)
-            if k in self._properties or k in self._mappings
+            k: v for k, v in obj.items() if k in self._properties or k in self._mappings
         }
         super(DynamicContract, self)._populate_properties(contained)
 
-        for key, value in six.iteritems(obj):
+        for key, value in obj.items():
             if key not in self._properties and key not in self._mappings:
-                # ignore non-ascii keys in python2
-                if not six.PY2 or IDENTIFIER_RE.match(key):
-                    setattr(self, key, value)
+                setattr(self, key, value)

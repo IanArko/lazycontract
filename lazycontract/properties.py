@@ -1,13 +1,11 @@
 from __future__ import absolute_import
 
-from .contract import LazyProperty, LazyContract
-
-import six
+from .contract import LazyProperty, LazyContract, LazyContractValidationError
 
 
 class StringProperty(LazyProperty):
 
-    _type = six.string_types
+    _type = str
 
     def deserialize(self, obj):
         return obj if isinstance(obj, self._type) else str(obj)
@@ -18,7 +16,7 @@ class BooleanProperty(LazyProperty):
     _type = bool
 
     def deserialize(self, obj):
-        if isinstance(obj, six.string_types):
+        if isinstance(obj, str):
             return obj.lower() == "true"
         else:
             return self._type(obj)
@@ -26,7 +24,7 @@ class BooleanProperty(LazyProperty):
 
 class IntegerProperty(LazyProperty):
 
-    _type = six.integer_types
+    _type = int
 
     def deserialize(self, obj):
         return obj if isinstance(obj, self._type) else int(obj)
@@ -34,7 +32,7 @@ class IntegerProperty(LazyProperty):
 
 class EnumerationProperty(LazyProperty):
 
-    _type = six.string_types
+    _type = str
 
     def __init__(self, options, *args, **kwargs):
         super(EnumerationProperty, self).__init__(*args, **kwargs)
@@ -92,7 +90,20 @@ class ListProperty(ContainerProperty):
         if self._property is None:
             return obj
         else:
-            return [self._property.deserialize(e) for e in obj]
+            l = []
+            i = 0
+            try:
+                for i, e in enumerate(obj):
+                    l.append(self._property.deserialize(e))
+                return l
+            except Exception as e:
+                if isinstance(e, LazyContractValidationError):
+                    idx = "[" + str(i) + "]"
+                    if e.path:
+                        e.path = idx + "." + e.path
+                    else:
+                        e.path = idx
+                raise
 
 
 class DictProperty(ContainerProperty):
@@ -103,13 +114,27 @@ class DictProperty(ContainerProperty):
         if self._property is None:
             return obj
         else:
-            return {k: self._property.serialize(e) for k, e in six.iteritems(obj)}
+            return {k: self._property.serialize(e) for k, e in obj.items()}
 
     def deserialize(self, obj):
         if self._property is None:
             return obj
         else:
-            return {k: self._property.deserialize(e) for k, e in six.iteritems(obj)}
+            d = {}
+            l = []
+            k = ""
+            try:
+                for k, e in obj.items():
+                    d[k] = self._property.deserialize(e)
+                return d
+            except Exception as e:
+                if isinstance(e, LazyContractValidationError):
+                    idx = "[" + k + "]"
+                    if e.path:
+                        e.path = idx + "." + e.path
+                    else:
+                        e.path = idx
+                raise
 
 
 class SetProperty(ContainerProperty):
