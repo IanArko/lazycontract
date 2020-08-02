@@ -87,6 +87,12 @@ class ListProperty(ContainerProperty):
             return [self._property.serialize(e) for e in obj]
 
     def deserialize(self, obj):
+        if isinstance(obj, str):
+            raise LazyContractValidationError(
+                self,
+                "",
+                LazyContractValidationError.ATTR_TYPE_FMT.format(repr(obj), self._type),
+            )
         if self._property is None:
             return obj
         else:
@@ -148,6 +154,12 @@ class SetProperty(ContainerProperty):
             return [self._property.serialize(e) for e in obj]
 
     def deserialize(self, obj):
+        if isinstance(obj, str):
+            raise LazyContractValidationError(
+                self,
+                "",
+                LazyContractValidationError.ATTR_TYPE_FMT.format(repr(obj), self._type),
+            )
         if self._property is None:
             return {e for e in obj}
         else:

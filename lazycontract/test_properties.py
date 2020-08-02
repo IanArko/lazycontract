@@ -72,6 +72,24 @@ def test_list_property():
 
     assert x.to_dict() == expected
 
+def test_non_str_containers():
+    class ListPropertyContract(LazyContract):
+        s = ListProperty(StringProperty())
+
+    class SetPropertyContract(LazyContract):
+        s = SetProperty(StringProperty())
+
+    try:
+        ListPropertyContract(s="not a list")
+        assert "expected failure" == False
+    except LazyContractValidationError:
+        pass
+
+    try:
+        SetPropertyContract(s="not a set")
+        assert "expected failure" == False
+    except LazyContractValidationError:
+        pass
 
 def test_dict_property():
     class TestContract(LazyContract):
